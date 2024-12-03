@@ -1,0 +1,3 @@
+step 1. .venv/scripts/activate
+step 2 : python app.py
+step 3 :naviagte -  http://127.0.0.1:5000

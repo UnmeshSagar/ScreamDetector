@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Classification</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+        integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="text-center mb-4">
+            <h1>Audio Classification</h1>
+            <p class="text-muted">Upload an audio file to classify its content.</p>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <form id="audio-form" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="audio-file" class="font-weight-bold">Select Audio File:</label>
+                                <input type="file" class="form-control-file" id="audio-file" accept="audio/*"
+                                    required />
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block" id="classify-btn">
+                                Classify Audio
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="text-center text-primary">Classification Result</h5>
+                        <div id="result" class="text-center mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"
+        integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+        crossorigin="anonymous"></script>
+
+    <script>
+        $(document).ready(function () {
+            $("#audio-form").submit(function (event) {
+                event.preventDefault();
+
+                // Set loading state on button
+                var classifyBtn = $("#classify-btn");
+                classifyBtn.prop("disabled", true);
+                classifyBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Classifying...');
+
+                // Create FormData object
+                var formData = new FormData();
+                var audioFile = $("#audio-file")[0].files[0];
+                formData.append("audio-file", audioFile);
+
+                $.ajax({
+                    url: "/predict",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        var resultDiv = $("#result");
+
+                        // Reset button state
+                        classifyBtn.prop("disabled", false);
+                        classifyBtn.html('Classify Audio');
+
+                        if (response && response.evaluation_result !== undefined && response.result !== undefined) {
+                            var resultText =
+                                "Evaluation Result: " + (response.evaluation_result ? "True" : "False") +
+                                "<br>" +
+                                "Final Prediction Result for Scream: " + parseFloat(response.result).toFixed(4);
+
+                            resultDiv.html(resultText);
+
+                            // Display success alert with SweetAlert
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Classification Successful',
+                                html: resultText,
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        } else {
+                            console.error("Error: Response format is incorrect");
+                            resultDiv.html("Error: Response format is incorrect");
+
+                            // Display error alert with SweetAlert
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid Response Format',
+                                text: 'The server returned an unexpected response format.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error:", error);
+                        var resultDiv = $("#result");
+                        resultDiv.html("Error: " + xhr.responseJSON?.error || "Unexpected error");
+
+                        // Reset button state
+                        classifyBtn.prop("disabled", false);
+                        classifyBtn.html('Classify Audio');
+
+                        // Display error alert with SweetAlert
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Classification Failed',
+                            text: xhr.responseJSON?.error || 'An error occurred while processing the request.',
+                            confirmButtonText: 'OK'
+                        });
+                    },
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
